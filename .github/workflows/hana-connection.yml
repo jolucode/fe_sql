@@ -1,0 +1,34 @@
+name: SAP HANA Connection Workflow
+
+on:
+  push:
+    branches:
+      - main  # Puedes configurar otro trigger o rama
+
+jobs:
+  hana_connection:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup environment variables for SAP HANA connection
+      run: |
+        echo "HANA_HOST=your_hana_host" >> $GITHUB_ENV
+        echo "HANA_PORT=your_hana_port" >> $GITHUB_ENV
+        echo "HANA_USER=your_hana_user" >> $GITHUB_ENV
+        echo "HANA_PASSWORD=your_hana_password" >> $GITHUB_ENV
+
+    - name: Load RUC to Schema Mapping
+      run: |
+        echo "Loading RUC to Schema mapping from config.yml"
+        RUC=$GITHUB_REF  # Puedes obtener el RUC de alguna parte de tu workflow o como variable de entorno
+        SCHEMA=$(yq eval ".ruc_to_schema.${RUC}" config.yml)
+        echo "Schema for RUC ${RUC}: ${SCHEMA}"
+        echo "SCHEMA=${SCHEMA}" >> $GITHUB_ENV
+
+    - name: Test SAP HANA connection
+      run: |
+        echo "Testing SAP HANA connection"
+        hdbsql -n $HANA_HOST:$HANA_PORT -u $HANA_USER -p $HANA_PASSWORD "SET SCHEMA $SCHEMA; SELECT 1 FROM DUMMY"
