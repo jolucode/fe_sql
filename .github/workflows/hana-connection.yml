@@ -8,25 +8,25 @@ on:
 jobs:
   hana_connection:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Install HANA client
+      run: |
+        # Descarga e instala el cliente HANA
+        wget https://download.sap.com/download.html?file=hana-client-linux_x86_64.tar.gz
+        tar -xvf hana-client-linux_x86_64.tar.gz
+        sudo mv hdbclient /opt/saphana
+
     - name: Setup environment variables for SAP HANA connection
       run: |
-        echo "HANA_HOST=your_hana_host" >> $GITHUB_ENV
-        echo "HANA_PORT=your_hana_port" >> $GITHUB_ENV
-        echo "HANA_USER=your_hana_user" >> $GITHUB_ENV
-        echo "HANA_PASSWORD=your_hana_password" >> $GITHUB_ENV
-
-    - name: Load RUC to Schema Mapping
-      run: |
-        echo "Loading RUC to Schema mapping from config.yml"
-        RUC=$GITHUB_REF  # Puedes obtener el RUC de alguna parte de tu workflow o como variable de entorno
-        SCHEMA=$(yq eval ".ruc_to_schema.${RUC}" config.yml)
-        echo "Schema for RUC ${RUC}: ${SCHEMA}"
-        echo "SCHEMA=${SCHEMA}" >> $GITHUB_ENV
+        echo "HANA_HOST=${{ secrets.HANA_HOST }}" >> $GITHUB_ENV
+        echo "HANA_PORT=${{ secrets.HANA_PORT }}" >> $GITHUB_ENV
+        echo "HANA_USER=${{ secrets.HANA_USER }}" >> $GITHUB_ENV
+        echo "HANA_PASSWORD=${{ secrets.HANA_PASSWORD }}" >> $GITHUB_ENV
+        echo "SCHEMA=${{ secrets.SCHEMA }}" >> $GITHUB_ENV
 
     - name: Test SAP HANA connection
       run: |
