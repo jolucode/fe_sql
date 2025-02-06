@@ -1,42 +1,48 @@
-name: SAP HANA Connection Workflow
+name: Connect to Windows Server via GitHub Actions
 
 on:
   push:
     branches:
-      - main  # Puedes configurar otro trigger o rama
+      - main  # Puedes ajustar el trigger según tu necesidad
 
 jobs:
-  connect_and_query_hana:
+  connect_to_windows:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    # Paso 1: Conectar al servidor Windows usando WinRM
-    - name: Connect to Windows Server via WinRM
-      uses: Maxym/psrp-client@v1
-      with:
-        hostname: ${{ secrets.WINDOWS_SERVER_IP }}
-        username: ${{ secrets.WINDOWS_SERVER_USER }}
-        password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
-        command: |
-          echo "Conexión establecida al servidor Windows"
-          # Listar archivos en el disco C para verificar la conexión
-          dir C:\
+    - name: Install PowerShell and WinRM client
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y powershell
+        pwsh -Command "Install-Module -Name PSRPClient -Force -Scope CurrentUser"
 
-    # Paso 2: Conectar a SAP HANA desde el servidor Windows
-    - name: Connect to SAP HANA Database
-      uses: Maxym/psrp-client@v1
-      with:
-        hostname: ${{ secrets.WINDOWS_SERVER_IP }}
-        username: ${{ secrets.WINDOWS_SERVER_USER }}
-        password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
-        command: |
-          echo "Conectando a SAP HANA..."
-          # Ejecutar el comando para conectarse a SAP HANA
-          hdbsql -n ${{ secrets.HANA_HOST }}:${{ secrets.HANA_PORT }} -u ${{ secrets.HANA_USER }} -p ${{ secrets.HANA_PASSWORD }} "SET SCHEMA ${{ secrets.SCHEMA }}; SELECT 1 FROM DUMMY;"
+    - name: Connect to Windows Server using WinRM
+      run: |
+        pwsh -Command "
+          try {
+            # Establecer la conexión
+            $session = New-PSSession -ComputerName '${{ secrets.WINDOWS_SERVER_IP }}' `
+                                     -Port ${{ secrets.WINDOWS_SERVER_PORT }} `
+                                     -Credential (New-Object System.Management.Automation.PSCredential('${{ secrets.WINDOWS_SERVER_USER }}', (ConvertTo-SecureString '${{ secrets.WINDOWS_SERVER_PASSWORD }}' -AsPlainText -Force))) `
+                                     -Authentication Negotiate `
+                                     -UseSSL:$false
 
-    # Mensaje final de éxito
-    - name: Finalize
-      run: echo "Conexión a SAP HANA y servidor Windows exitosa"
+            # Verificar la conexión
+            if ($session.State -eq 'Opened') {
+              Write-Output '✅ Conexión exitosa al servidor Windows.'
+              Invoke-Command -Session $session -ScriptBlock { hostname; Get-Date }
+            } else {
+              Write-Error '❌ No se pudo establecer la conexión al servidor.'
+            }
+
+            # Cerrar sesión
+            Remove-PSSession $session
+          }
+          catch {
+            Write-Error '❌ Error durante la conexión:'
+            Write-Error $_.Exception.Message
+          }
+        "
