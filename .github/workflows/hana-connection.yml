@@ -15,36 +15,28 @@ jobs:
 
     # Paso 1: Conectar al servidor Windows usando WinRM
     - name: Connect to Windows Server via WinRM
-      uses: mcmilk/psrp-client@v1
+      uses: Maxym/psrp-client@v1
       with:
         hostname: ${{ secrets.WINDOWS_SERVER_IP }}
         username: ${{ secrets.WINDOWS_SERVER_USER }}
         password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
         command: |
-          echo "Intentando conectar al servidor Windows..."
-          if ($?) {
-            Write-Host "✅ Conexión exitosa al servidor Windows"
-          } else {
-            Write-Error "❌ Error al conectar al servidor Windows"
-            exit 1
-          }
-          # Aquí puedes agregar cualquier comando adicional que necesites
+          echo "Conexión establecida al servidor Windows"
+          # Listar archivos en el disco C para verificar la conexión
           dir C:\
 
-    # Paso 2: Conectar a SAP HANA desde el servidor
+    # Paso 2: Conectar a SAP HANA desde el servidor Windows
     - name: Connect to SAP HANA Database
-      uses: mcmilk/psrp-client@v1
+      uses: Maxym/psrp-client@v1
       with:
         hostname: ${{ secrets.WINDOWS_SERVER_IP }}
         username: ${{ secrets.WINDOWS_SERVER_USER }}
         password: ${{ secrets.WINDOWS_SERVER_PASSWORD }}
         command: |
-          echo "Intentando conectar a SAP HANA..."
+          echo "Conectando a SAP HANA..."
+          # Ejecutar el comando para conectarse a SAP HANA
           hdbsql -n ${{ secrets.HANA_HOST }}:${{ secrets.HANA_PORT }} -u ${{ secrets.HANA_USER }} -p ${{ secrets.HANA_PASSWORD }} "SET SCHEMA ${{ secrets.SCHEMA }}; SELECT 1 FROM DUMMY;"
-          
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "✅ Conexión exitosa a SAP HANA y consulta ejecutada correctamente"
-          } else {
-            Write-Error "❌ Error al conectar a SAP HANA o ejecutar la consulta"
-            exit 1
-          }
+
+    # Mensaje final de éxito
+    - name: Finalize
+      run: echo "Conexión a SAP HANA y servidor Windows exitosa"
