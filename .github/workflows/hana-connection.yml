@@ -13,13 +13,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Install HANA client
-      run: |
-        # Descarga e instala el cliente HANA
-        wget https://download.sap.com/download.html?file=hana-client-linux_x86_64.tar.gz
-        tar -xvf hana-client-linux_x86_64.tar.gz
-        sudo mv hdbclient /opt/saphana
-
     - name: Setup environment variables for SAP HANA connection
       run: |
         echo "HANA_HOST=${{ secrets.HANA_HOST }}" >> $GITHUB_ENV
