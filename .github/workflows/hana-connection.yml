@@ -14,4 +14,4 @@ jobs:
         shell: bash
         run: |
           # Conectar a través de SSH
-          ssh ${{ secrets.WINDOWS_USERNAME }}@119.8.146.122 "echo 'Comando ejecutado remotamentse'"
+          ssh ${{ secrets.WINDOWS_USERNAME }}@101.44.1.161 "echo 'Comando ejecutado remotamentse'"
