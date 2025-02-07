@@ -18,8 +18,8 @@ jobs:
         run: |
           $username = "${{ secrets.WINDOWS_USERNAME }}"
           $password = "${{ secrets.WINDOWS_PASSWORD }}"
-          $host = "101.44.1.161"
+          $remoteHost = "101.44.1.161"  # Renombrado a $remoteHost
           $command = "echo 'Comando ejecutado remotamente'"
 
           # Usar plink para la conexión SSH y ejecutar el comando
-          & "$env:USERPROFILE\plink.exe" -ssh $username@$host -pw $password -batch $command
+          & "$env:USERPROFILE\plink.exe" -ssh $username@$remoteHost -pw $password -batch $command
