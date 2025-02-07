@@ -1,48 +1,31 @@
-name: Connect to Windows Server via GitHub Actions
+name: Connect to Windows Server
 
 on:
-  push:
-    branches:
-      - main  # Puedes ajustar el trigger según tu necesidad
+  workflow_dispatch:
 
 jobs:
-  connect_to_windows:
+  connect:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Install PowerShell and WinRM client
+    - name: Install PowerShell
       run: |
         sudo apt-get update
         sudo apt-get install -y powershell
-        pwsh -Command "Install-Module -Name PSRPClient -Force -Scope CurrentUser"
 
-    - name: Connect to Windows Server using WinRM
+    - name: Connect to Windows Server
+      shell: pwsh
       run: |
-        pwsh -Command "
-          try {
-            # Establecer la conexión
-            $session = New-PSSession -ComputerName '${{ secrets.WINDOWS_SERVER_IP }}' `
-                                     -Port ${{ secrets.WINDOWS_SERVER_PORT }} `
-                                     -Credential (New-Object System.Management.Automation.PSCredential('${{ secrets.WINDOWS_SERVER_USER }}', (ConvertTo-SecureString '${{ secrets.WINDOWS_SERVER_PASSWORD }}' -AsPlainText -Force))) `
-                                     -Authentication Negotiate `
-                                     -UseSSL:$false
+        try {
+          $session = New-PSSession -ComputerName 119.8.146.122 -Port 63034 -Credential (New-Object System.Management.Automation.PSCredential('Operador_vs04', (ConvertTo-SecureString 'aNkf2BSN#TCcKYnp' -AsPlainText -Force))) -UseSSL -Authentication Negotiate
 
-            # Verificar la conexión
-            if ($session.State -eq 'Opened') {
-              Write-Output '✅ Conexión exitosa al servidor Windows.'
-              Invoke-Command -Session $session -ScriptBlock { hostname; Get-Date }
-            } else {
-              Write-Error '❌ No se pudo establecer la conexión al servidor.'
-            }
-
-            #  Cerrar sesión
+          if ($session -ne $null) {
+            Write-Output "✅ Conexión exitosa al servidor Windows."
             Remove-PSSession $session
+          } else {
+            Write-Error "❌ No se pudo establecer la conexión."
           }
-          catch {
-            Write-Error '❌ Error durante la conexión:'
-            Write-Error $_.Exception.Message
-          }
-        "
+        }
+        catch {
+          Write-Error "❌ Error durante la conexión: $($_.Exception.Message)"
+        }
