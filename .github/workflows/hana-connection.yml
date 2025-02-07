@@ -21,7 +21,7 @@ jobs:
           try {
             $session = New-PSSession -ComputerName 119.8.146.122 -Port 63034 -Credential $cred -Authentication Negotiate
             if ($session) {
-              Write-Output "✅ Conexión exitosa al servidor Windows."
+              Write-Output "✅S Conexión exitosa al servidor Windows."
               # Aquí puedes añadir más comandos para ejecutar en la sesión remota, si es necesario.
               Remove-PSSession $session
             } else {
