@@ -1,36 +1,32 @@
-name: Connect to Windows Server
-'on':
+name: Conexión Remota Windows
+
+on:
   push:
     branches:
       - main
+
 jobs:
   remote-desktop-connection:
-    runs-on: windows-latest
+    runs-on: windows-latest  # Entorno Windows
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Install PowerShell
+      - name: Establecer conexión remota a Windows
+        shell: pwsh  # Usar PowerShell
         run: |
-          sudo apt update
-          sudo apt install -y powershell
-      - name: Connect to Windows Server via WinRM
-        run: >
           $username = "${{ secrets.WINDOWS_USERNAME }}"
+          $password = ConvertTo-SecureString "${{ secrets.WINDOWS_PASSWORD }}" -AsPlainText -Force
+          $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
 
-          $password = ConvertTo-SecureString "${{ secrets.WINDOWS_PASSWORD }}"
-          -AsPlainText -Force
-
-          $cred = New-Object System.Management.Automation.PSCredential
-          ($username, $password)
-
-
-          $session = New-PSSession -ComputerName 119.8.146.122 -Port 63034
-          -Credential $cred -UseSSL -Authentication Negotiate
-
-
-          if ($session -ne $null) {
-            Write-Output "✅ Conexión exitosa al servidor Windows."
-            Remove-PSSession $session
-          } else {
-            Write-Error "❌ No se pudo establecer la conexión."
+          # Intentar crear la sesión remota
+          try {
+            $session = New-PSSession -ComputerName 119.8.146.122 -Port 63034 -Credential $cred -Authentication Negotiate
+            if ($session) {
+              Write-Output "✅ Conexión exitosa al servidor Windows."
+              # Aquí puedes añadir más comandos para ejecutar en la sesión remota, si es necesario.
+              Remove-PSSession $session
+            } else {
+              Write-Error "❌ No se pudo establecer la conexión."
+            }
+          } catch {
+            Write-Error "❌ Error durante la conexión: $_"
           }
