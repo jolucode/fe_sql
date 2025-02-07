@@ -21,5 +21,5 @@ jobs:
           $password = ConvertTo-SecureString "${{ secrets.WINDOWS_PASSWORD }}" -AsPlainText -Force
           $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
 
-          # Usar PsExec para ejecutar un comando remoto
-          & "C:\temp\PsTools\PsExec.exe" \\119.8.146.122 -u $username -p $password cmd /c "echo Hello, World!"
+          # Usar PsExec para ejecutar un comando remoto y aceptar el EULA
+          & "C:\temp\PsTools\PsExec.exe" -accepteula \\119.8.146.122 -u $username -p $password cmd /c "echo Hello, World!"
