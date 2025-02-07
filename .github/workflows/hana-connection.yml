@@ -20,25 +20,15 @@ jobs:
 
       - name: Connect to Windows Server via WinRM
         run: |
-          pwsh -Command "
-            # Convertir la contraseña en un objeto seguro
-            $securePassword = ConvertTo-SecureString '${{ secrets.WIN_PASSWORD }}' -AsPlainText -Force
-            $credential = New-Object System.Management.Automation.PSCredential ('${{ secrets.WIN_USERNAME }}', $securePassword)
-
-            # Crear la sesión remota usando WinRM
-            $sessionOptions = New-PSSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck
-            $session = New-PSSession -ComputerName '${{ secrets.WIN_HOST }}' -Port ${{ secrets.WIN_PORT }} -Credential $credential -UseSSL -SessionOption $sessionOptions -Authentication Negotiate
-
-            # Verificar si la sesión fue creada exitosamente
-            if ($session -ne $null) {
-              Write-Output '✅ Conexión exitosa al servidor Windows.'
-              
-              # Ejecutar un comando en el servidor remoto (puedes personalizarlo)
-              Invoke-Command -Session $session -ScriptBlock { Get-ComputerInfo | Select-Object OSName, OSVersion }
-
-              # Cerrar la sesión después de ejecutar los comandos
-              Remove-PSSession $session
-            } else {
-              Write-Error '❌ No se pudo establecer la conexión.'
-            }
-          "
+                  $username = "${{ secrets.WINDOWS_USERNAME }}"
+                  $password = ConvertTo-SecureString "${{ secrets.WINDOWS_PASSWORD }}" -AsPlainText -Force
+                  $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
+                  
+                  $session = New-PSSession -ComputerName 119.8.146.122 -Port 63034 -Credential $cred -UseSSL -Authentication Negotiate
+        
+                  if ($session -ne $null) {
+                    Write-Output "✅ Conexión exitosa al servidor Windows."
+                    Remove-PSSession $session
+                  } else {
+                    Write-Error "❌ No se pudo establecer la conexión."
+                  }
