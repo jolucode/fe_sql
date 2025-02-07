@@ -1,4 +1,4 @@
-name: Ejecutar Comandos Remotos con PsExec
+name: Conexión SSH Remota
 
 on:
   push:
@@ -6,20 +6,12 @@ on:
       - main
 
 jobs:
-  execute-remote-command:
-    runs-on: windows-latest  # Entorno Windows
+  remote-ssh-connection:
+    runs-on: windows-latest
 
     steps:
-      - name: Descargar PsExec
+      - name: Conectar vía SSH y ejecutar comandos
+        shell: bash
         run: |
-          Invoke-WebRequest -Uri "https://download.sysinternals.com/files/PSTools.zip" -OutFile "C:\temp\PSTools.zip"
-          Expand-Archive "C:\temp\PSTools.zip" -DestinationPath "C:\temp\PsTools"
-
-      - name: Ejecutar comando remoto
-        run: |
-          $username = "${{ secrets.WINDOWS_USERNAME }}"
-          $password = ConvertTo-SecureString "${{ secrets.WINDOWS_PASSWORD }}" -AsPlainText -Force
-          $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
-
-          # Usar PsExec para ejecutar un comando remoto y aceptar el EULA
-          & "C:\temp\PsTools\PsExec.exe" -accepteula \\119.8.146.122 -u $username -p $password cmd /c "echo Hello, World!"
+          # Conectar a través de SSH
+          ssh ${{ secrets.WINDOWS_USERNAME }}@119.8.146.122 "echo 'Comando ejecutado remotamente'"
