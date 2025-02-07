@@ -1,4 +1,4 @@
-name: Conexión Remota Windows
+name: Ejecutar Comandos Remotos con PsExec
 
 on:
   push:
@@ -6,30 +6,20 @@ on:
       - main
 
 jobs:
-  remote-desktop-connection:
+  execute-remote-command:
     runs-on: windows-latest  # Entorno Windows
 
     steps:
-      - name: Establecer conexión remota a Windows
-        shell: pwsh  # Usar PowerShell
+      - name: Descargar PsExec
         run: |
-          # Configurar TrustedHosts
-          Set-Item WSMan:\localhost\Client\TrustedHosts -Value "119.8.146.122" -Force
-          
+          Invoke-WebRequest -Uri "https://download.sysinternals.com/files/PSTools.zip" -OutFile "C:\temp\PSTools.zip"
+          Expand-Archive "C:\temp\PSTools.zip" -DestinationPath "C:\temp\PsTools"
+
+      - name: Ejecutar comando remoto
+        run: |
           $username = "${{ secrets.WINDOWS_USERNAME }}"
           $password = ConvertTo-SecureString "${{ secrets.WINDOWS_PASSWORD }}" -AsPlainText -Force
           $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
 
-          # Intentar crear la sesión remota
-          try {
-            $session = New-PSSession -ComputerName 119.8.146.122 -Port 63034 -Credential $cred -Authentication Negotiate
-            if ($session) {
-              Write-Output "✅S Conexión exitosa al servidor Windows."
-              # Aquí puedes añadir más comandos para ejecutar en la sesión remota, si es necesario.
-              Remove-PSSession $session
-            } else {
-              Write-Error "❌ No se pudo establecer la conexión."
-            }
-          } catch {
-            Write-Error "❌ Error durante la conexión: $_"
-          }
+          # Usar PsExec para ejecutar un comando remoto
+          & "C:\temp\PsTools\PsExec.exe" \\119.8.146.122 -u $username -p $password cmd /c "echo Hello, World!"
