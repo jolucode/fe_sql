@@ -1,4 +1,4 @@
-name: Conexión SSH Remota
+name: Conexión SSH Remota con Usuario y Contraseña
 
 on:
   push:
@@ -10,8 +10,12 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      - name: Instalar sshpass
+        run: |
+          sudo apt-get install -y sshpass
+
       - name: Conectar vía SSH y ejecutar comandos
         shell: bash
         run: |
-          # Conectar a través de SSH
-          ssh ${{ secrets.WINDOWS_USERNAME }}@101.44.1.161 "echo 'Comando ejecutado remotamentse'"
+          # Conexión a través de SSH con usuario y contraseña
+          sshpass -p "${{ secrets.WINDOWS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.WINDOWS_USERNAME }}@101.44.1.161 "echo 'Comando ejecutado remotamente'"
