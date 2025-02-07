@@ -38,7 +38,7 @@ jobs:
               Write-Error '❌ No se pudo establecer la conexión al servidor.'
             }
 
-            # Cerrar sesión
+            #  Cerrar sesión
             Remove-PSSession $session
           }
           catch {
