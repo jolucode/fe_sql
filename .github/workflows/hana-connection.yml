@@ -1,7 +1,9 @@
-name: Connect to Windows Server
+name: Connect to Windows Server via GitHub Actions
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main  # Puedes ajustar el trigger según tu necesidad
 
 jobs:
   connect:
