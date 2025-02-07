@@ -19,8 +19,8 @@ jobs:
       shell: pwsh
       run: |
         try {
-          $session = New-PSSession -ComputerName 119.8.146.122 -Port 63034 -Credential (New-Object System.Management.Automation.PSCredential('Operador_vs04', (ConvertTo-SecureString 'aNkf2BSN#TCcKYnp' -AsPlainText -Force))) -UseSSL -Authentication Negotiate
-
+          $session = New-PSSession -HostName 119.8.146.122 -Port 63034 -UserName 'Operador_vs04' -KeyFilePath '/path/to/private/key'
+        
           if ($session -ne $null) {
             Write-Output "✅ Conexión exitosa al servidor Windows."
             Remove-PSSession $session
