@@ -1,4 +1,4 @@
-name: Conexión SSH Remota con Usuario y Contraseña
+name: Conexión SSH Remota con Usuario y Contraseña (Windows)
 
 on:
   push:
@@ -10,12 +10,16 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Instalar sshpass
+      - name: Descargar y configurar plink
         run: |
-          sudo apt-get install -y sshpass
+          Invoke-WebRequest -Uri "https://the.earth.li/~sgtatham/putty/latest/w64/plink.exe" -OutFile "$env:USERPROFILE\plink.exe"
 
       - name: Conectar vía SSH y ejecutar comandos
-        shell: bash
         run: |
-          # Conexión a través de SSH con usuario y contraseña
-          sshpass -p "${{ secrets.WINDOWS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.WINDOWS_USERNAME }}@101.44.1.161 "echo 'Comando ejecutado remotamente'"
+          $username = "${{ secrets.WINDOWS_USERNAME }}"
+          $password = "${{ secrets.WINDOWS_PASSWORD }}"
+          $host = "101.44.1.161"
+          $command = "echo 'Comando ejecutado remotamente'"
+
+          # Usar plink para la conexión SSH y ejecutar el comando
+          & "$env:USERPROFILE\plink.exe" -ssh $username@$host -pw $password -batch $command
