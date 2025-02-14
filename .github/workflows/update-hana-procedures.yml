@@ -32,7 +32,7 @@ jobs:
               echo 'Access to /hana/shared/NDB/HDB00/exe successful'
 
               echo 'Running SELECT query'
-              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"SELECT CURRENT_TIMESTAMP FROM DUMMY;\"
+              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEsMA\" -m -C \"SEsLECT CURRENT_TIMESTAMP FROM DUMMY;\"
             "
           EOF
 
