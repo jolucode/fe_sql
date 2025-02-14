@@ -1,4 +1,4 @@
-name: Clear SAP HANA Stored Procedure
+name: Drop SAP HANA Stored Procedure
 
 on:
   push:
@@ -6,14 +6,14 @@ on:
       - main
 
 jobs:
-  clear-hana-procedure:
+  drop-hana-procedure:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: SSH into SAP HANA Server and Clear Procedure
+      - name: SSH into SAP HANA Server and Drop Procedure
         env:
           SSH_HOST: "176.52.135.159"
           SSH_PORT: "22234"
@@ -27,37 +27,32 @@ jobs:
           sudo apt-get update && sudo apt-get install -y sshpass
           
           sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<'EOF'
-            echo "✅ Connection to SAP HANA Server successful!"
-            echo "Switching to root user..."
+            echo "Connection to SAP HANA Server successful"
+            echo "Switching to root user"
             sudo su -c "
               cd /hana/shared/NDB/HDB00/exe || exit 1
-              echo '✅ Access to /hana/shared/NDB/HDB00/exe successful!'
+              echo 'Access to /hana/shared/NDB/HDB00/exe successful'
 
-              echo 'Dropping procedure if exists...'
-              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"DROP PROCEDURE IF EXISTS $SCHEMA.\"$PROCEDURE\";\" || exit 1
+              echo 'Deleting procedure if it exists'
+              DROP_RESULT=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"DROP PROCEDURE IF EXISTS \\\"$SCHEMA\\\".\\\"$PROCEDURE\\\";\" 2>&1)
+              
+              if echo \"\$DROP_RESULT\" | grep -q 'could not be dropped'; then
+                echo 'ERROR: Procedure could not be dropped, check for dependencies'
+                exit 1
+              fi
 
-              echo 'Creating empty procedure...'
-              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"
-              CREATE PROCEDURE $SCHEMA.\"$PROCEDURE\" ()
-              LANGUAGE SQLSCRIPT
-              SQL SECURITY INVOKER
-              AS
-              BEGIN
-              -- Procedimiento vacío
-              END;\" || exit 1
+              echo 'Procedure deleted successfully'
 
-              echo '✅ Procedure cleared successfully!'
+              echo 'Verifying if procedure was removed'
+              CHECK_EXISTENCE=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"SELECT * FROM SYS.PROCEDURES WHERE SCHEMA_NAME = '$SCHEMA' AND PROCEDURE_NAME = '$PROCEDURE';\")
 
-              echo 'Verifying if procedure is empty...'
-              CHECK_RESULT=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"SHOW CREATE PROCEDURE $SCHEMA.\"$PROCEDURE\";\" | wc -l)
-
-              if [ \"\$CHECK_RESULT\" -lt 10 ]; then
-                echo '✅ Procedure is empty as expected!'
+              if [ -z \"\$CHECK_EXISTENCE\" ]; then
+                echo 'Procedure does not exist anymore'
               else
-                echo '⚠️ Warning: Procedure might not be empty, check manually!'
+                echo 'WARNING: Procedure might still exist, check manually'
               fi
             "
           EOF
 
-          echo "✅ GitHub Action completed successfully!"
-          exit 0  # Termina con éxito
+          echo "GitHub Action completed successfully"
+          exit 0
