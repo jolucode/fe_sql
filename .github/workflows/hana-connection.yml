@@ -3,7 +3,7 @@ name: Update SAP HANA Procedures Based on File Changes
 on:
   push:
     paths:
-      - 'SBO_*/**.sql'  # Monitorea archivos SQL en cualquier schema (ej: SBO_20510511906_MAFIE_TEST/*.sql)
+      - 'SBO_*/**.sql'  # Monitorea archivos SQL en cualquier schema
     branches:
       - main
 
@@ -40,30 +40,30 @@ jobs:
           SUCCESS=true  # Variable para monitorear errores
 
           for FILE in $FILES; do
-            SCHEMA=$(echo $FILE | cut -d'/' -f1)  # Extrae el nombre del schema desde la carpeta
-            PROCEDURE=$(basename $FILE .sql)  # Extrae el nombre del procedimiento sin la extensión
+            SCHEMA=$(echo "$FILE" | cut -d'/' -f1)  # Extrae el schema
+            PROCEDURE=$(basename "$FILE" .sql)  # Extrae el nombre del procedimiento
             
             echo "Processing Schema: $SCHEMA, Procedure: $PROCEDURE"
             
-            SQL_CONTENT=$(cat $FILE)  # Carga el contenido del archivo SQL
+            SQL_CONTENT=$(cat "$FILE")  # Carga el contenido del archivo SQL
             
-            sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<EOF
-              echo "✅ Connection to SAP HANA Server successful!"
-              echo "Updating Procedure: $PROCEDURE in Schema: $SCHEMA..."
+            sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash -c "'
+              echo \"✅ Connection to SAP HANA Server successful!\"
+              echo \"Updating Procedure: $PROCEDURE in Schema: $SCHEMA...\"
               
-              sudo su -c "
+              sudo su -c \"
                 cd /hana/shared/NDB/HDB00/exe || exit 1
                 echo '✅ Access to /hana/shared/NDB/HDB00/exe successful!'
 
                 echo 'Dropping existing procedure...'
-                ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"DROP PROCEDURE IF EXISTS $SCHEMA.$PROCEDURE;\" || SUCCESS=false
+                ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \\\"DROP PROCEDURE IF EXISTS \\\"$SCHEMA\\\".\\\"$PROCEDURE\\\";\\\" || SUCCESS=false
 
                 echo 'Creating updated procedure...'
-                ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"$SQL_CONTENT\" || SUCCESS=false
+                ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \\\"$SQL_CONTENT\\\" || SUCCESS=false
 
                 echo '✅ Procedure $PROCEDURE updated successfully in schema $SCHEMA!'
-              "
-EOF
+              \"
+            '"
           done
 
           if [ "$SUCCESS" = false ]; then
