@@ -25,15 +25,20 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
 
-          sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<'EOF'
+          sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<EOF
             echo "Connection to SAP HANA Server successful"
-            sudo su -c "
+            
+            # Cambiamos a root
+            sudo su - root <<EOC
               cd /hana/shared/NDB/HDB00/exe || exit 1
-              echo 'Access to /hana/shared/NDB/HDB00/exe successful'
+              echo "Access to /hana/shared/NDB/HDB00/exe successful"
 
-              echo 'Running SELECT query'
-              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEsMA\" -m -C \"SEsLECT CURRENT_TIMESTAMP FROM DUMMY;\"
-            "
+              echo "Running SELECT query..."
+              RESULT=\$(./hdbsql -u "$HANA_USER" -p "$HANA_PASSWORD" -d "$SCHEMA" -m -C "SELECT CURRENT_TIMESTAMP FROM DUMMY;")
+
+              echo "Query result:"
+              echo "\$RESULT"
+            EOC
           EOF
 
           echo "GitHub Action completed successfully"
