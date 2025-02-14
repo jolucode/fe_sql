@@ -22,23 +22,24 @@ jobs:
           HANA_USER: "SYSTEM"
           HANA_PASSWORD: "H4N4B1Admin"
           SCHEMA: "SBO_20510511906_MAFIE_TEST"
+          QUERY: "SELECT CURRENT_TIMESTAMP FROM DUMMY"
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
 
           sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<EOF
             echo "Connection to SAP HANA Server successful"
-            
-            # Cambiamos a root
-            sudo su - root <<EOC
+
+            # Cambiar a root y ejecutar el comando
+            sudo su - root -c "
               cd /hana/shared/NDB/HDB00/exe || exit 1
-              echo "Access to /hana/shared/NDB/HDB00/exe successful"
+              echo 'Access to /hana/shared/NDB/HDB00/exe successful'
 
-              echo "Running SELECT query..."
-              RESULT=\$(./hdbsql -u "$HANA_USER" -p "$HANA_PASSWORD" -d "$SCHEMA" -m -C "SELECT CURRENT_TIMESTAMP FROM DUMMY;")
-
-              echo "Query result:"
-              echo "\$RESULT"
-            EOC
+              echo 'Running SELECT query...'
+              RESULT=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"$QUERY\" 2>&1)
+              
+              echo 'Query result:'
+              echo \"\$RESULT\"
+            "
           EOF
 
           echo "GitHub Action completed successfully"
