@@ -25,7 +25,7 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
           
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<EOF
+          sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<EOF
             echo "Connected to SAP HANA Server"
             cd /hana/shared/NDB/HDB00/exe
             echo "Running hdbsql..."
