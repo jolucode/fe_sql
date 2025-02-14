@@ -1,4 +1,4 @@
-name: Connect to SAP HANA via SSH and Run Queries
+name: Connect to SAP HANA via SSH and Verify Connection
 
 on:
   push:
@@ -13,23 +13,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: SSH into SAP HANA Server and Execute Queries
+      - name: SSH into SAP HANA Server and Verify Connection
         env:
           SSH_HOST: "176.52.135.159"
           SSH_PORT: "22234"
           SSH_USER: "jbecerra"
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-          HANA_USER: "SYSTEM"
-          HANA_PASSWORD: "H4N4B1Admin"
-          QUERY: "SELECT CURRENT_TIMESTAMP FROM DUMMY;"
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
           
           sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<EOF
-            echo "Connected to SAP HANA Server"
-            cd /hana/shared/NDB/HDB00/exe
-            echo "Running hdbsql..."
-            ./hdbsql -u "$HANA_USER" -p "$HANA_PASSWORD" -m <<EOSQL
-            $QUERY
-            EOSQL
+            echo "✅ Connection to SAP HANA Server successful!"
+            echo "Switching to root user..."
+            sudo su - <<EOROOT
+              cd /hana/shared/NDB/HDB00/exe || exit 1
+              echo "✅ Access to /hana/shared/NDB/HDB00/exe successful!"
+            EOROOT
           EOF
