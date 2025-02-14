@@ -1,4 +1,4 @@
-name: Conexión SSH Remota con Usuario y Contraseña (Windows)
+name: Connect to Multiple SAP HANA Databases
 
 on:
   push:
@@ -6,20 +6,32 @@ on:
       - main
 
 jobs:
-  remote-ssh-connection:
-    runs-on: windows-latest
+  connect-hana:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar y configurar plink
-        run: |
-          Invoke-WebRequest -Uri "https://the.earth.li/~sgtatham/putty/latest/w64/plink.exe" -OutFile "$env:USERPROFILE\plink.exe"
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Conectar vía SSH y ejecutar comandos
+      - name: Install HANA Client
         run: |
-          $username = "${{ secrets.WINDOWS_USERNAME }}"
-          $password = "${{ secrets.WINDOWS_PASSWORD }}"
-          $remoteHost = "101.44.1.161"  # Renombrado a $remoteHost
-          $command = "echo 'Comando ejecutado remotamente'"
+          wget https://tools.hana.ondemand.com/additional/HDB_CLIENT_LINUX_X86_64.tar.gz
+          tar -xvzf HDB_CLIENT_LINUX_X86_64.tar.gz
+          sudo ./HDB_CLIENT_LINUX_X86_64/setup.sh --batch
 
-          # Usar plink para la conexión SSH y ejecutar el comando
-          & "$env:USERPROFILE\plink.exe" -ssh $username@$remoteHost -pw $password -batch $command
+      - name: Connect and Run Queries on Each Database
+        env:
+          HANA_HOST: ${{ secrets.HANA_HOST }}
+          HANA_PORT: ${{ secrets.HANA_PORT }}
+          HANA_USER: ${{ secrets.HANA_USER }}
+          HANA_PASSWORD: ${{ secrets.HANA_PASSWORD }}
+          DATABASES: "20100151546 20100172624 20106836451"  # Lista de bases de datos
+        run: |
+          echo "Connecting to SAP HANA and executing queries..."
+          
+          for DB in $DATABASES; do
+            echo "Connecting to database: $DB"
+            ./HDB_CLIENT_LINUX_X86_64/hdbsql -n $HANA_HOST:$HANA_PORT -u $HANA_USER -p $HANA_PASSWORD -d $DB -m <<EOF
+            SELECT CURRENT_TIMESTAMP FROM DUMMY;
+            EOF
+          done
