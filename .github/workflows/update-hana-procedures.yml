@@ -1,4 +1,4 @@
-name: Update SAP HANA Stored Procedure
+name: Clear SAP HANA Stored Procedure
 
 on:
   push:
@@ -6,14 +6,14 @@ on:
       - main
 
 jobs:
-  update-hana-procedure:
+  clear-hana-procedure:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: SSH into SAP HANA Server and Replace Procedure
+      - name: SSH into SAP HANA Server and Clear Procedure
         env:
           SSH_HOST: "176.52.135.159"
           SSH_PORT: "22234"
@@ -33,20 +33,21 @@ jobs:
               cd /hana/shared/NDB/HDB00/exe || exit 1
               echo '✅ Access to /hana/shared/NDB/HDB00/exe successful!'
 
-              echo 'Dropping old procedure if exists...'
-              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"DROP PROCEDURE IF EXISTS $SCHEMA.\"$PROCEDURE\";\"
+              echo 'Clearing procedure content...'
+              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"DROP PROCEDURE IF EXISTS $SCHEMA.\"$PROCEDURE\";\" || exit 1
 
-              echo 'Creating new procedure...'
               ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"
               CREATE PROCEDURE $SCHEMA.\"$PROCEDURE\" ()
               LANGUAGE SQLSCRIPT
               SQL SECURITY INVOKER
               AS
               BEGIN
-                  -- Nueva lógica del procedimiento
-                  SELECT 'Procedimiento actualizado correctamente' AS Mensaje;
-              END;\"
+                  -- Procedimiento vacío
+              END;\" || exit 1
 
-              echo '✅ Procedure updated successfully!'
+              echo '✅ Procedure cleared successfully!'
             "
           EOF
+
+          echo "✅ GitHub Action completed successfully!"
+          exit 0  # Termina con éxito
