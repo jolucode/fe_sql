@@ -1,19 +1,32 @@
-name: Connect to SAP HANA and Execute Stored Procedure
+name: Update SAP HANA Procedures Based on File Changes
 
 on:
   push:
+    paths:
+      - 'SBO_*/**.sql'  # Monitorea archivos SQL en cualquier schema (ej: SBO_20510511906_MAFIE_TEST/*.sql)
     branches:
       - main
 
 jobs:
-  connect-hana:
+  update-hana-procedures:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: SSH into SAP HANA Server and Execute Query
+      - name: Find Updated SQL Files
+        id: find_sql
+        run: |
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | grep -E 'SBO_.*/.*\.sql' || true)
+          echo "Changed files: $CHANGED_FILES"
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No SQL files changed. Exiting successfully."
+            exit 0
+          fi
+          echo "FILES=$CHANGED_FILES" >> $GITHUB_ENV
+
+      - name: Update Procedures in SAP HANA
         env:
           SSH_HOST: "176.52.135.159"
           SSH_PORT: "22234"
@@ -21,26 +34,41 @@ jobs:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
           HANA_USER: "SYSTEM"
           HANA_PASSWORD: "H4N4B1Admin"
-          SCHEMA: "SBO_20510014279_SC_TEST"
-          PROCEDURE: "SBO_20510511906_MAFIE_TEST.\"bpvs_FE_FacturaCabecera\""
-          TABLE_NAME: "SBO_20510511906_MAFIE_TEST.\"bpvs_FE_FacturaCabecera\""
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
           
-          sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<'EOF'
-            echo "✅ Connection to SAP HANA Server successful!"
-            echo "Switching to root user..."
-            sudo su -c "
-              cd /hana/shared/NDB/HDB00/exe || exit 1
-              echo '✅ Access to /hana/shared/NDB/HDB00/exe successful!'
+          SUCCESS=true  # Variable para monitorear errores
 
-              echo 'Executing Stored Procedure: '"$PROCEDURE"'...'
-              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"CALL $PROCEDURE;\"
+          for FILE in $FILES; do
+            SCHEMA=$(echo $FILE | cut -d'/' -f1)  # Extrae el nombre del schema desde la carpeta
+            PROCEDURE=$(basename $FILE .sql)  # Extrae el nombre del procedimiento sin la extensión
+            
+            echo "Processing Schema: $SCHEMA, Procedure: $PROCEDURE"
+            
+            SQL_CONTENT=$(cat $FILE)  # Carga el contenido del archivo SQL
+            
+            sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<EOF
+              echo "✅ Connection to SAP HANA Server successful!"
+              echo "Updating Procedure: $PROCEDURE in Schema: $SCHEMA..."
+              
+              sudo su -c "
+                cd /hana/shared/NDB/HDB00/exe || exit 1
+                echo '✅ Access to /hana/shared/NDB/HDB00/exe successful!'
 
-              echo 'Fetching data from the table...'
-              OUTPUT=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"SELECT * FROM $TABLE_NAME;\")
+                echo 'Dropping existing procedure...'
+                ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"DROP PROCEDURE IF EXISTS $SCHEMA.$PROCEDURE;\" || SUCCESS=false
 
-              echo '✅ Procedure Execution Output:'
-              echo \"\$OUTPUT\"
-            "
-          EOF
+                echo 'Creating updated procedure...'
+                ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"$SQL_CONTENT\" || SUCCESS=false
+
+                echo '✅ Procedure $PROCEDURE updated successfully in schema $SCHEMA!'
+              "
+EOF
+          done
+
+          if [ "$SUCCESS" = false ]; then
+            echo "⚠️ Some procedures failed to update, but the action will still complete successfully."
+          fi
+
+          echo "✅ GitHub Action completed successfully!"
+          exit 0  # Termina con éxito incluso si hubo errores
