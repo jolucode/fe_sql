@@ -27,18 +27,18 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
           
-          sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<EOF
+          sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<'EOF'
             echo "✅ Connection to SAP HANA Server successful!"
             echo "Switching to root user..."
             sudo su -c "
               cd /hana/shared/NDB/HDB00/exe || exit 1
               echo '✅ Access to /hana/shared/NDB/HDB00/exe successful!'
 
-              echo 'Executing Stored Procedure: $PROCEDURE...'
-              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -j -C \"CALL $PROCEDURE;\"
+              echo 'Executing Stored Procedure: '"$PROCEDURE"'...'
+              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"CALL $PROCEDURE;\"
 
               echo 'Checking record count...'
-              RECORDS=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -C \"SELECT COUNT(*) FROM $TABLE_NAME;\" | tail -n 1)
+              RECORDS=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -C 'SELECT COUNT(*) FROM "'"$TABLE_NAME"'"' | tail -n 1)
 
               echo \"✅ Execution successful! Records returned: \$RECORDS\"
             "
