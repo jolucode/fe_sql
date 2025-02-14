@@ -38,7 +38,7 @@ jobs:
               ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"CALL $PROCEDURE;\"
 
               echo 'Checking record count...'
-              RECORDS=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -C 'SELECT COUNT(*) FROM "'"$TABLE_NAME"'"' | tail -n 1)
+              RECORDS=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -C 'SELECT COUNT(*) FROM "'"$TABLE_NAME"'"' | awk 'NR==3 {print \$1}')
 
               echo \"✅ Execution successful! Records returned: \$RECORDS\"
             "
