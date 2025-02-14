@@ -33,19 +33,29 @@ jobs:
               cd /hana/shared/NDB/HDB00/exe || exit 1
               echo '✅ Access to /hana/shared/NDB/HDB00/exe successful!'
 
-              echo 'Clearing procedure content...'
+              echo 'Dropping procedure if exists...'
               ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"DROP PROCEDURE IF EXISTS $SCHEMA.\"$PROCEDURE\";\" || exit 1
 
+              echo 'Creating empty procedure...'
               ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"
               CREATE PROCEDURE $SCHEMA.\"$PROCEDURE\" ()
               LANGUAGE SQLSCRIPT
               SQL SECURITY INVOKER
               AS
               BEGIN
-                  -- Procedimiento vacío
+              -- Procedimiento vacío
               END;\" || exit 1
 
               echo '✅ Procedure cleared successfully!'
+
+              echo 'Verifying if procedure is empty...'
+              CHECK_RESULT=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"SHOW CREATE PROCEDURE $SCHEMA.\"$PROCEDURE\";\" | wc -l)
+
+              if [ \"\$CHECK_RESULT\" -lt 10 ]; then
+                echo '✅ Procedure is empty as expected!'
+              else
+                echo '⚠️ Warning: Procedure might not be empty, check manually!'
+              fi
             "
           EOF
 
