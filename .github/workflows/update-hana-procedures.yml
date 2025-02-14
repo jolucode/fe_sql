@@ -19,28 +19,33 @@ jobs:
           SSH_PORT: "22234"
           SSH_USER: "jbecerra"
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-          HANA_USER: "SYSTEM"
-          HANA_PASSWORD: "H4N4B1Admin"
+          HANA_USER: ${{ secrets.HANA_USER }}
+          HANA_PASSWORD: ${{ secrets.HANA_PASSWORD }}
           SCHEMA: "SBO_20510511906_MAFIE_TEST"
-          QUERY: "SELECT CURRENT_TIMESTAMP FROM DUMMY"
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
 
-          sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<EOF
-            echo "Connection to SAP HANA Server successful"
+          sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST << EOF
+          echo "Connection to SAP HANA Server successful"
 
-            # Cambiar a root y ejecutar el comando
-            sudo su - root -c "
-              cd /hana/shared/NDB/HDB00/exe || exit 1
-              echo 'Access to /hana/shared/NDB/HDB00/exe successful'
-
-              echo 'Running SELECT query...'
-              RESULT=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"$QUERY\" 2>&1)
+          # Usar ruta absoluta de hdbsql y mejor manejo de errores
+          sudo su - root -c '
+            if cd /hana/shared/NDB/HDB00/exe; then
+              echo "Access to /hana/shared/NDB/HDB00/exe successful"
               
-              echo 'Query result:'
-              echo \"\$RESULT\"
-            "
+              echo "Running SELECT query..."
+              RESULT=\$(/hana/shared/NDB/HDB00/exe/hdbsql -u "$HANA_USER" -p "$HANA_PASSWORD" -d $SCHEMA -m -C "SELECT CURRENT_TIMESTAMP FROM DUMMY" 2>&1)
+              
+              # Filtrar salida no deseada
+              CLEAN_RESULT=\$(echo "\$RESULT" | grep -P "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d+")
+              
+              echo "Query result:"
+              echo "\$CLEAN_RESULT"
+            else
+              echo "Error: Failed to access HANA directory"
+              exit 1
+            fi
+          '
           EOF
 
           echo "GitHub Action completed successfully"
-          exit 0
