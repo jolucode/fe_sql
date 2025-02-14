@@ -23,7 +23,6 @@ jobs:
           HANA_PASSWORD: "H4N4B1Admin"
           SCHEMA: "SBO_20510014279_SC_TEST"
           PROCEDURE: "SBO_20510511906_MAFIE_TEST.\"bpvs_FE_FacturaCabecera\""
-          TABLE_NAME: "SBO_20510511906_MAFIE_TEST.\"bpvs_FE_FacturaCabecera\""
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
           
@@ -35,11 +34,9 @@ jobs:
               echo '✅ Access to /hana/shared/NDB/HDB00/exe successful!'
 
               echo 'Executing Stored Procedure: '"$PROCEDURE"'...'
-              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"CALL $PROCEDURE;\"
-
-              echo 'Checking record count...'
-              RECORDS=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -C 'SELECT COUNT(*) FROM "'"$TABLE_NAME"'"' | awk 'NR==3 {print \$1}')
-
-              echo \"✅ Execution successful! Records returned: \$RECORDS\"
+              OUTPUT=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"CALL $PROCEDURE;\")
+              
+              echo '✅ Procedure Execution Output:'
+              echo \"\$OUTPUT\" | while IFS= read -r line; do echo \"➡️  \$line\"; done
             "
           EOF
