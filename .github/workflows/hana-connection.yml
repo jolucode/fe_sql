@@ -1,4 +1,4 @@
-name: Connect to Multiple SAP HANA Databases
+name: Connect to SAP HANA Databases using Python
 
 on:
   push:
@@ -13,25 +13,46 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install HANA Client
-        run: |
-          wget https://tools.hana.ondemand.com/additional/HDB_CLIENT_LINUX_X86_64.tar.gz
-          tar -xvzf HDB_CLIENT_LINUX_X86_64.tar.gz
-          sudo ./HDB_CLIENT_LINUX_X86_64/setup.sh --batch
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-      - name: Connect and Run Queries on Each Database
+      - name: Install SAP HANA Python Driver
+        run: |
+          pip install hdbcli
+
+      - name: Connect to SAP HANA and Run Queries
         env:
           HANA_HOST: ${{ secrets.HANA_HOST }}
           HANA_PORT: ${{ secrets.HANA_PORT }}
           HANA_USER: ${{ secrets.HANA_USER }}
           HANA_PASSWORD: ${{ secrets.HANA_PASSWORD }}
-          DATABASES: "20100151546 20100172624 20106836451"  # Lista de bases de datos
+          DATABASES: "20100151546 20100172624 20106836451"
         run: |
-          echo "Connecting to SAP HANA and executing queries..."
-          
-          for DB in $DATABASES; do
-            echo "Connecting to database: $DB"
-            ./HDB_CLIENT_LINUX_X86_64/hdbsql -n $HANA_HOST:$HANA_PORT -u $HANA_USER -p $HANA_PASSWORD -d $DB -m <<EOF
-            SELECT CURRENT_TIMESTAMP FROM DUMMY;
-            EOF
-          done
+          python - <<EOF
+          from hdbcli import dbapi
+          import os
+
+          HANA_HOST = os.getenv("HANA_HOST")
+          HANA_PORT = os.getenv("HANA_PORT")
+          HANA_USER = os.getenv("HANA_USER")
+          HANA_PASSWORD = os.getenv("HANA_PASSWORD")
+          DATABASES = os.getenv("DATABASES").split()
+
+          for db in DATABASES:
+              print(f"Connecting to database: {db}")
+              conn = dbapi.connect(
+                  address=HANA_HOST,
+                  port=int(HANA_PORT),
+                  user=HANA_USER,
+                  password=HANA_PASSWORD,
+                  database=db
+              )
+              cursor = conn.cursor()
+              cursor.execute("SELECT CURRENT_TIMESTAMP FROM DUMMY;")
+              result = cursor.fetchall()
+              print(f"Timestamp from {db}: {result}")
+              cursor.close()
+              conn.close()
+          EOF
