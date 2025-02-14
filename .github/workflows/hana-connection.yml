@@ -67,7 +67,7 @@ jobs:
           done
 
           if [ "$SUCCESS" = false ]; then
-            echo "⚠️ Some procedures failed to update, but the action will still complete successfully."
+            echo "⚠️ Ssome procedures failed to update, but the action will still complete successfully."
           fi
 
           echo "✅ GitHub Action completed successfully!"
