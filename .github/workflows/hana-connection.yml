@@ -1,4 +1,4 @@
-name: Connect to SAP HANA via SSH and Verify Connection
+name: Connect to SAP HANA and Execute Stored Procedure
 
 on:
   push:
@@ -13,12 +13,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: SSH into SAP HANA Server and Verify Connection
+      - name: SSH into SAP HANA Server and Execute Query
         env:
           SSH_HOST: "176.52.135.159"
           SSH_PORT: "22234"
           SSH_USER: "jbecerra"
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          HANA_USER: "SYSTEM"
+          HANA_PASSWORD: "H4N4B1Admin"
+          SCHEMA: "SBO_20510511906_MAFIE_TEST"
+          PROCEDURE: "SBO_20510511906_MAFIE_TEST.\"bpvs_FE_FacturaCabecera\"()"
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
           
@@ -28,5 +32,13 @@ jobs:
             sudo su -c "
               cd /hana/shared/NDB/HDB00/exe || exit 1
               echo '✅ Access to /hana/shared/NDB/HDB00/exe successful!'
+              
+              echo 'Executing Stored Procedure: $PROCEDURE...'
+              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -j -C \"CALL $PROCEDURE;\"
+              
+              echo 'Checking record count...'
+              RECORDS=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -j -C \"SELECT COUNT(*) FROM SBO_20510511906_MAFIE_TEST.\"bpvs_FE_FacturaCabecera\";\")
+              
+              echo \"✅ Execution successful! Records returned: \$RECORDS\"
             "
           EOF
