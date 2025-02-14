@@ -1,4 +1,4 @@
-name: Connect to SAP HANA Databases using Python
+name: Connect to SAP HANA via SSH and Run Queries
 
 on:
   push:
@@ -13,46 +13,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-
-      - name: Install SAP HANA Python Driver
-        run: |
-          pip install hdbcli
-
-      - name: Connect to SAP HANA and Run Queries
+      - name: SSH into SAP HANA Server and Execute Queries
         env:
-          HANA_HOST: ${{ secrets.HANA_HOST }}
-          HANA_PORT: ${{ secrets.HANA_PORT }}
-          HANA_USER: ${{ secrets.HANA_USER }}
-          HANA_PASSWORD: ${{ secrets.HANA_PASSWORD }}
-          DATABASES: "20100151546 20100172624 20106836451"
+          SSH_HOST: "176.52.135.159"
+          SSH_PORT: "22234"
+          SSH_USER: "jbecerra"
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          HANA_USER: "SYSTEM"
+          HANA_PASSWORD: "H4N4B1Admin"
+          QUERY: "SELECT CURRENT_TIMESTAMP FROM DUMMY;"
         run: |
-          python - <<EOF
-          from hdbcli import dbapi
-          import os
-
-          HANA_HOST = os.getenv("HANA_HOST")
-          HANA_PORT = os.getenv("HANA_PORT")
-          HANA_USER = os.getenv("HANA_USER")
-          HANA_PASSWORD = os.getenv("HANA_PASSWORD")
-          DATABASES = os.getenv("DATABASES").split()
-
-          for db in DATABASES:
-              print(f"Connecting to database: {db}")
-              conn = dbapi.connect(
-                  address=HANA_HOST,
-                  port=int(HANA_PORT),
-                  user=HANA_USER,
-                  password=HANA_PASSWORD,
-                  database=db
-              )
-              cursor = conn.cursor()
-              cursor.execute("SELECT CURRENT_TIMESTAMP FROM DUMMY;")
-              result = cursor.fetchall()
-              print(f"Timestamp from {db}: {result}")
-              cursor.close()
-              conn.close()
+          sudo apt-get update && sudo apt-get install -y sshpass
+          
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<EOF
+            echo "Connected to SAP HANA Server"
+            cd /hana/shared/NDB/HDB00/exe
+            echo "Running hdbsql..."
+            ./hdbsql -u "$HANA_USER" -p "$HANA_PASSWORD" -m <<EOSQL
+            $QUERY
+            EOSQL
           EOF
