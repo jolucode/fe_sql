@@ -1,4 +1,4 @@
-name: Drop SAP HANA Stored Procedure
+name: Test SAP HANA Connection and Run SELECT
 
 on:
   push:
@@ -6,14 +6,14 @@ on:
       - main
 
 jobs:
-  drop-hana-procedure:
+  test-hana-connection:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: SSH into SAP HANA Server and Drop Procedure
+      - name: SSH into SAP HANA Server and Run SELECT Query
         env:
           SSH_HOST: "176.52.135.159"
           SSH_PORT: "22234"
@@ -22,35 +22,17 @@ jobs:
           HANA_USER: "SYSTEM"
           HANA_PASSWORD: "H4N4B1Admin"
           SCHEMA: "SBO_20510511906_MAFIE_TEST"
-          PROCEDURE: "bpvs_FE_FacturaCabecera"
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
-          
+
           sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<'EOF'
             echo "Connection to SAP HANA Server successful"
-            echo "Switching to root user"
             sudo su -c "
               cd /hana/shared/NDB/HDB00/exe || exit 1
               echo 'Access to /hana/shared/NDB/HDB00/exe successful'
 
-              echo 'Deleting procedure if it exists'
-              DROP_RESULT=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"DROP PROCEDURE IF EXISTS \\\"$SCHEMA\\\".\\\"$PROCEDURE\\\";\" 2>&1)
-              
-              if echo \"\$DROP_RESULT\" | grep -q 'could not be dropped'; then
-                echo 'ERROR: Procedure could not be dropped, check for dependencies'
-                exit 1
-              fi
-
-              echo 'Procedure deleted successfully'
-
-              echo 'Verifying if procedure was removed'
-              CHECK_EXISTENCE=\$(./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"SELECT * FROM SYS.PROCEDURES WHERE SCHEMA_NAME = '$SCHEMA' AND PROCEDURE_NAME = '$PROCEDURE';\")
-
-              if [ -z \"\$CHECK_EXISTENCE\" ]; then
-                echo 'Procedure does not exist anymore'
-              else
-                echo 'WARNING: Procedure might still exist, check manually'
-              fi
+              echo 'Running SELECT query'
+              ./hdbsql -u \"$HANA_USER\" -p \"$HANA_PASSWORD\" -d \"$SCHEMA\" -m -C \"SELECT CURRENT_TIMESTAMP FROM DUMMY;\"
             "
           EOF
 
