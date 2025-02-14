@@ -25,8 +25,8 @@ jobs:
           sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST <<EOF
             echo "✅ Connection to SAP HANA Server successful!"
             echo "Switching to root user..."
-            sudo su - <<EOROOT
+            sudo su -c "
               cd /hana/shared/NDB/HDB00/exe || exit 1
-              echo "✅ Access to /hana/shared/NDB/HDB00/exe successful!"
-            EOROOT
+              echo '✅ Access to /hana/shared/NDB/HDB00/exe successful!'
+            "
           EOF
