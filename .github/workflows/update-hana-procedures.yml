@@ -33,19 +33,10 @@ jobs:
           echo "$SSH_PASSWORD" | sudo -S su - root << 'EOROOT'
           cd /hana/shared/NDB/HDB00/exe
 
-          # Verificar acceso al directorio
-          if cd /hana/shared/NDB/HDB00/exe; then
-            echo "Acceso al directorio de HANA exitoso"
-
-            # Ejecutar procedimiento almacenado
-            echo "Ejecutando procedimiento almacenado..."
-            ./hdbsql -u "SYSTEM" -p "$HANA_PASSWORD" -d NDB -ajx "CALL SBO_20510511906_MAFIE_TEST.\"bpvs_FE_FacturaCabecera\"()"
-
-            echo "Ejecución completada correctamente"
-          else
-            echo "Error: No se pudo acceder al directorio de HANA"
-            exit 1
-          fi
+          # Forzar formato CSV y desactivar modo interactivo
+          ./hdbsql -u "SYSTEM" -p "H4N4B1Admin" -d NDB -ajx "CALL SBO_20510511906_MAFIE_TEST.\"bpvs_FE_FacturaCabecera\"()"
+          
+          
 
           echo "Cerrando sesión SSH..."
           exit 0
