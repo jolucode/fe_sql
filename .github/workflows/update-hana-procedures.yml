@@ -29,8 +29,9 @@ jobs:
           sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST << 'EOSSH'
           echo "Conectado al servidor SAP HANA"
 
-          # Cambiar a root (sin redirecciones innecesarias)
-          echo "$SSH_PASSWORD" | sudo -S su - root
+          # Ejecutar como root y capturar la salida
+          echo "$SSH_PASSWORD" | sudo -S su - root << 'EOROOT'
+          cd /hana/shared/NDB/HDB00/exe
 
           # Verificar acceso al directorio
           if cd /hana/shared/NDB/HDB00/exe; then
