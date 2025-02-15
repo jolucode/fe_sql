@@ -25,27 +25,26 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
 
-          sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST << EOF
+          sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST << 'EOF'
           echo "Connection to SAP HANA Server successful"
 
-          # Usar ruta absoluta de hdbsql y mejor manejo de errores
-          sudo su - root -c '
+          sudo su - root -c "
             if cd /hana/shared/NDB/HDB00/exe; then
-              echo "Access to /hana/shared/NDB/HDB00/exe successful"
+              echo 'Access to /hana/shared/NDB/HDB00/exe successful'
               
-              echo "Running SELECT query..."
-              RESULT=\$(/hana/shared/NDB/HDB00/exe/hdbsql -u "$HANA_USER" -p "$HANA_PASSWORD" -d $SCHEMA -m -C "SELECT CURRENT_TIMESTAMP FROM DUMMY" 2>&1)
+              echo 'Running SELECT query...'
+              RESULT=\$(./hdbsql -u '$HANA_USER' -p '$HANA_PASSWORD' -d $SCHEMA -m -C 'SELECT CURRENT_TIMESTAMP FROM DUMMY' 2>&1)
               
-              # Filtrar salida no deseada
-              CLEAN_RESULT=\$(echo "\$RESULT" | grep -P "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d+")
+              # Filtrar solo la línea con el timestamp
+              CLEAN_RESULT=\$(echo \"\$RESULT\" | grep -Eo '[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]+')
               
-              echo "Query result:"
-              echo "\$CLEAN_RESULT"
+              echo 'Query result:'
+              echo \"\$CLEAN_RESULT\"
             else
-              echo "Error: Failed to access HANA directory"
+              echo 'Error: Failed to access HANA directory'
               exit 1
             fi
-          '
+          "
           EOF
 
           echo "GitHub Action completed successfully"
