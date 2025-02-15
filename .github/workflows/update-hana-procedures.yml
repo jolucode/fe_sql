@@ -13,7 +13,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Connect to SAP HANA and Execute Stored Procedure
+      - name: Connect to SAP HANA and Execute SP
         env:
           SSH_HOST: "176.52.135.159"
           SSH_PORT: "22234"
@@ -28,17 +28,12 @@ jobs:
           sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST << 'EOSSH'
           echo "Conectado al servidor SAP HANA"
 
-          # Elevar privilegios a root y ejecutar el comando
+          # Ejecutar como root y capturar la salida
           echo "$SSH_PASSWORD" | sudo -S su - root << 'EOROOT'
           cd /hana/shared/NDB/HDB00/exe
 
-          # Ejecutar el CALL al procedimiento almacenado
-          ./hdbsql -u "$HANA_USER" -p "$HANA_PASSWORD" -d NDB << 'EOSQL'
-          CALL "$SCHEMA"."bpvs_FE_FacturaCabecera"();
-          EOSQL
-
-          echo "Procedimiento ejecutado exitosamente"
+          # Forzar formato CSV y desactivar modo interactivo
+          ./hdbsql -u "$HANA_USER" -p "$HANA_PASSWORD" -d NDB -ajx "CALL \"$SCHEMA\".\"bpvs_FE_FacturaCabecera\"()" 2>&1
+          
           EOROOT
           EOSSH
-
-          echo "GitHub Action completado"
