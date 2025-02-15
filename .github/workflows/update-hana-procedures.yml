@@ -28,11 +28,12 @@ jobs:
           sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST << 'EOSSH'
           echo "Conectado al servidor SAP HANA"
 
-          # Ejecutar directamente sin cambiar a root (usa ndbadm si es necesario)
+          # Ejecutar como root y capturar la salida
+          echo "$SSH_PASSWORD" | sudo -S su - root << 'EOROOT'
           cd /hana/shared/NDB/HDB00/exe
 
-          # Versión funcional basada en tu ejemplo manual
-          ./hdbsql -u "$HANA_USER" -p "$HANA_PASSWORD" -d NDB -ajx \
-            "CALL \"$SCHEMA\".\"bpvs_FE_FacturaCabecera\"()" 2>&1
-
+          # Forzar formato CSV y desactivar modo interactivo
+          ./hdbsql -u "SYSTEM" -p "H4N4B1Admin" -d NDB -ajx "CALL SBO_20510511906_MAFIE_TEST.\"bpvs_FE_FacturaCabecera\"()"
+          
+          EOROOT
           EOSSH
