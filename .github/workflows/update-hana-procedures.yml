@@ -1,4 +1,4 @@
-name: Test SAP HANA Connection and Run SELECT
+name: Execute SAP HANA Stored Procedure
 
 on:
   push:
@@ -6,45 +6,39 @@ on:
       - main
 
 jobs:
-  test-hana-connection:
+  execute-hana-procedure:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: SSH into SAP HANA Server and Run SELECT Query
+      - name: Connect to SAP HANA and Execute Stored Procedure
         env:
           SSH_HOST: "176.52.135.159"
           SSH_PORT: "22234"
           SSH_USER: "jbecerra"
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-          HANA_USER: ${{ secrets.HANA_USER }}
+          HANA_USER: "SYSTEM"
           HANA_PASSWORD: ${{ secrets.HANA_PASSWORD }}
           SCHEMA: "SBO_20510511906_MAFIE_TEST"
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
 
-          sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST << 'EOF'
-          echo "Connection to SAP HANA Server successful"
+          sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST << 'EOSSH'
+          echo "Conectado al servidor SAP HANA"
 
-          sudo su - root -c "
-            if cd /hana/shared/NDB/HDB00/exe; then
-              echo 'Access to /hana/shared/NDB/HDB00/exe successful'
-              
-              echo 'Running SELECT query...'
-              RESULT=\$(./hdbsql -u '$HANA_USER' -p '$HANA_PASSWORD' -d $SCHEMA -m -C 'SELECT CURRENT_TIMESTAMP FROM DUMMY' 2>&1)
-              
-              # Filtrar solo la línea con el timestamp
-              CLEAN_RESULT=\$(echo \"\$RESULT\" | grep -Eo '[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]+')
-              
-              echo 'Query result:'
-              echo \"\$CLEAN_RESULT\"
-            else
-              echo 'Error: Failed to access HANA directory'
-              exit 1
-            fi
-          "
-          EOF
+          # Elevar privilegios a root y ejecutar el comando
+          echo "$SSH_PASSWORD" | sudo -S su - root << 'EOROOT'
+          cd /hana/shared/NDB/HDB00/exe
 
-          echo "GitHub Action completed successfully"
+          # Ejecutar el CALL al procedimiento almacenado
+          ./hdbsql -u "$HANA_USER" -p "$HANA_PASSWORD" -d NDB << 'EOSQL'
+          CALL "$SCHEMA"."bpvs_FE_FacturaCabecera"();
+          EOSQL
+
+          echo "Procedimiento ejecutado exitosamente"
+          EOROOT
+          EOSSH
+
+          echo "GitHub Action completado"
