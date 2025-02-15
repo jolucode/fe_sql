@@ -25,7 +25,6 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
 
-          echo "Iniciando conexión SSH..."
           sshpass -p "$SSH_PASSWORD" ssh -tt -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST << 'EOSSH'
           echo "Conectado al servidor SAP HANA"
 
@@ -35,11 +34,13 @@ jobs:
 
           # Forzar formato CSV y desactivar modo interactivo
           ./hdbsql -u "SYSTEM" -p "H4N4B1Admin" -d NDB -ajx "CALL SBO_20510511906_MAFIE_TEST.\"bpvs_FE_FacturaCabecera\"()"
-          
-          
 
-          echo "Cerrando sesión SSH..."
-          exit 0
+          echo "Procedimiento ejecutado correctamente."
+          logout  # Salir de root correctamente
+          EOROOT
+
+          echo "Cerrando conexión SSH..."
+          exit 0  # Salir correctamente de SSH
           EOSSH
 
           echo "GitHub Action completada correctamente"
